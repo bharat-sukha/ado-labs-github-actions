@@ -20,22 +20,24 @@ data "azuread_client_config" "current" {}
 
 resource "azuread_application" "gh_actions" {
   display_name = local.service_principal_name
-  owners = [ data.azuread_client_config.current.object_id ]
+  owners       = [data.azuread_client_config.current.object_id]
 }
 
 resource "azuread_service_principal" "gh_actions" {
-  application_id = azuread_application.gh_actions.application_id
-  owners = [ data.azuread_client_config.current.object_id ]
+  client_id = azuread_application.gh_actions.client_id
+  owners    = [data.azuread_client_config.current.object_id]
 }
 
 resource "azuread_service_principal_password" "gh_actions" {
-  service_principal_id = azuread_service_principal.gh_actions.object_id
+  service_principal_id = azuread_service_principal.gh_actions.id
 }
 
 resource "azurerm_role_assignment" "gh_actions" {
-  scope                = data.azurerm_subscription.current.id
-  role_definition_name = "Contributor"
-  principal_id         = azuread_service_principal.gh_actions.id
+  scope                            = data.azurerm_subscription.current.id
+  role_definition_name             = "Contributor"
+  principal_id                     = azuread_service_principal.gh_actions.object_id
+  principal_type                   = "ServicePrincipal"
+  skip_service_principal_aad_check = true
 }
 
 # Azure Storage Account
@@ -60,8 +62,8 @@ resource "azurerm_storage_account" "sa" {
 }
 
 resource "azurerm_storage_container" "ct" {
-  name                 = "terraform-state"
-  storage_account_name = azurerm_storage_account.sa.name
+  name               = "terraform-state"
+  storage_account_id = azurerm_storage_account.sa.id
 
 }
 
@@ -72,7 +74,7 @@ resource "github_actions_secret" "actions_secret" {
     STORAGE_ACCOUNT     = azurerm_storage_account.sa.name
     RESOURCE_GROUP      = azurerm_storage_account.sa.resource_group_name
     CONTAINER_NAME      = azurerm_storage_container.ct.name
-    ARM_CLIENT_ID       = azuread_service_principal.gh_actions.application_id
+    ARM_CLIENT_ID       = azuread_service_principal.gh_actions.client_id
     ARM_CLIENT_SECRET   = azuread_service_principal_password.gh_actions.value
     ARM_SUBSCRIPTION_ID = data.azurerm_subscription.current.subscription_id
     ARM_TENANT_ID       = data.azuread_client_config.current.tenant_id
