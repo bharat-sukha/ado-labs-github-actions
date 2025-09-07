@@ -24,6 +24,12 @@ variable "asp_size" {
     default = "F1"
 }
 
+variable "os_type" {
+  type = string
+  description = "Operating System for App Service Plan (Windows, Linux)"
+  default = "Windows"
+}
+
 variable "capacity" {
   type = string
   description = "Number of instances for App Service Plan"
